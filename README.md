@@ -1,4 +1,4 @@
-## Hyperbolic Demo by [Carl Kho](https://www.linkedin.com/in/carlkho/) — GPU Pricing
+## Hyperbolic Demo by [Carl Kho]([https://www.linkedin.com/in/carlkho/](https://docs.google.com/document/d/1R5L4TyiJIK9jTlImP-5pJjgjM3AtbqVkYey5VOIyeD8/edit?tab=t.hysy8cjryz39)) — GPU Pricing
 
 This demo showcases the GPU pricing functionality using the Hyperbolic Marketplace API. The demo is designed specifically for the Hyperbolic team and demonstrates how our API can be integrated into a live React application.
 
