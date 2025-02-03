@@ -1,126 +1,51 @@
-# Multimodal Live API - Web console
+## Hyperbolic Demo by [Carl Kho](https://www.linkedin.com/in/carlkho/): GPU Pricing
 
-This repository contains a react-based starter app for using the [Multimodal Live API](<[https://ai.google.dev/gemini-api](https://ai.google.dev/api/multimodal-live)>) over a websocket. It provides modules for streaming audio playback, recording user media such as from a microphone, webcam or screen capture as well as a unified log view to aid in development of your application.
+This demo showcases the GPU pricing functionality using the Hyperbolic Marketplace API. The demo is designed specifically for the Hyperbolic team and demonstrates how our API can be integrated into a live React application.
 
-[![Multimodal Live API Demo](readme/thumbnail.png)](https://www.youtube.com/watch?v=J_q7JY1XxFE)
+<div>
+    <a href="https://www.loom.com/share/758ab8840a3d496396de8a785a27c47f">
+      <p>Demo for Hyperbolic Team - Watch Video</p>
+    </a>
+    <a href="https://www.loom.com/share/758ab8840a3d496396de8a785a27c47f">
+      <img style="max-width:300px;" src="https://cdn.loom.com/sessions/thumbnails/758ab8840a3d496396de8a785a27c47f-8de09c9a99478ccb-full-play.gif">
+    </a>
+  </div>
 
-Watch the demo of the Multimodal Live API [here](https://www.youtube.com/watch?v=J_q7JY1XxFE).
+### Setup
 
-## Usage
+1. **Environment Variables**
+   Ensure your `.env` file contains the Hyperbolic API key and URL. For example:
 
-To get started, [create a free Gemini API key](https://aistudio.google.com/apikey) and add it to the `.env` file. Then:
+   ```
+   HYPERBOLIC_API_KEY=your_hyperbolic_api_key
+   REACT_APP_HYPERBOLIC_API_KEY=your_api_key_here
+   REACT_APP_HYPERBOLIC_API_URL=https://api.hyperbolic.ai
+   ```
 
-```
-$ npm install && npm start
-```
+2. **Install Dependencies**
 
-We have provided several example applications on other branches of this repository:
+   ```sh
+   npm install
+   ```
 
-- [demos/GenExplainer](https://github.com/google-gemini/multimodal-live-api-web-console/tree/demos/genexplainer)
-- [demos/GenWeather](https://github.com/google-gemini/multimodal-live-api-web-console/tree/demos/genweather)
-- [demos/GenList](https://github.com/google-gemini/multimodal-live-api-web-console/tree/demos/genlist)
+### Running the Demo
 
-## Example
+Start the development server:
 
-Below is an example of an entire application that will use Google Search grounding and then render graphs using [vega-embed](https://github.com/vega/vega-embed):
-
-```typescript
-import { type FunctionDeclaration, SchemaType } from "@google/generative-ai";
-import { useEffect, useRef, useState, memo } from "react";
-import vegaEmbed from "vega-embed";
-import { useLiveAPIContext } from "../../contexts/LiveAPIContext";
-
-export const declaration: FunctionDeclaration = {
-  name: "render_altair",
-  description: "Displays an altair graph in json format.",
-  parameters: {
-    type: SchemaType.OBJECT,
-    properties: {
-      json_graph: {
-        type: SchemaType.STRING,
-        description:
-          "JSON STRING representation of the graph to render. Must be a string, not a json object",
-      },
-    },
-    required: ["json_graph"],
-  },
-};
-
-export function Altair() {
-  const [jsonString, setJSONString] = useState<string>("");
-  const { client, setConfig } = useLiveAPIContext();
-
-  useEffect(() => {
-    setConfig({
-      model: "models/gemini-2.0-flash-exp",
-      systemInstruction: {
-        parts: [
-          {
-            text: 'You are my helpful assistant. Any time I ask you for a graph call the "render_altair" function I have provided you. Dont ask for additional information just make your best judgement.',
-          },
-        ],
-      },
-      tools: [{ googleSearch: {} }, { functionDeclarations: [declaration] }],
-    });
-  }, [setConfig]);
-
-  useEffect(() => {
-    const onToolCall = (toolCall: ToolCall) => {
-      console.log(`got toolcall`, toolCall);
-      const fc = toolCall.functionCalls.find(
-        (fc) => fc.name === declaration.name
-      );
-      if (fc) {
-        const str = (fc.args as any).json_graph;
-        setJSONString(str);
-      }
-    };
-    client.on("toolcall", onToolCall);
-    return () => {
-      client.off("toolcall", onToolCall);
-    };
-  }, [client]);
-
-  const embedRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (embedRef.current && jsonString) {
-      vegaEmbed(embedRef.current, JSON.parse(jsonString));
-    }
-  }, [embedRef, jsonString]);
-  return <div className="vega-embed" ref={embedRef} />;
-}
+```sh
+npm install && npm start
 ```
 
-## development
+Open [http://localhost:3000](http://localhost:3000) in your browser. When the GPU pricing tool is triggered (by an API tool call using the "list_gpu_prices" function), it calls our
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
-Project consists of:
+callMarketplace
 
-- an Event-emitting websocket-client to ease communication between the websocket and the front-end
-- communication layer for processing audio in and out
-- a boilerplate view for starting to build your apps and view logs
+ API endpoint which in turn fetches the latest GPU details.
 
-## Available Scripts
+### How It Works
 
-In the project directory, you can run:
+- The marketplace-api.js module makes a POST request to our Hyperbolic endpoint.
+- In `Altair.tsx`, the GPU pricing tool listens for a tool call event. When triggered, it uses the API to fetch GPU data and renders each GPU using the `GpuCard` component.
+- Successful responses send back pricing data, and errors are handled gracefully by notifying the user.
 
-### `npm start`
-
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
-
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
-
-### `npm run build`
-
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
-
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
-
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-_This is an experiment showcasing the Multimodal Live API, not an official Google product. We’ll do our best to support and maintain this experiment but your mileage may vary. We encourage open sourcing projects as a way of learning from each other. Please respect our and other creators' rights, including copyright and trademark rights when present, when sharing these works and creating derivative work. If you want more info on Google's policy, you can find that [here](https://developers.google.com/terms/site-policies)._
+This demo is a focused example for the Hyperbolic team to evaluate API integration and real-time GPU pricing functionality.

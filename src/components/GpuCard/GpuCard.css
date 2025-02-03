@@ -1,0 +1,55 @@
+.gpu-card {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 16px;
+  margin: 8px;
+  width: 300px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  transition: transform 0.2s;
+}
+
+.gpu-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.gpu-image {
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
+  border-radius: 4px;
+}
+
+.gpu-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.gpu-info {
+  margin-top: 12px;
+}
+
+.gpu-info h4 {
+  margin: 0 0 8px 0;
+  color: #333;
+}
+
+.gpu-price {
+  font-size: 1.2em;
+  font-weight: bold;
+  color: #2c5282;
+  margin: 8px 0;
+}
+
+.gpu-description {
+  color: #666;
+  font-size: 0.9em;
+  margin: 8px 0;
+}
+
+.gpu-availability {
+  color: #48bb78;
+  font-size: 0.9em;
+  margin: 8px 0;
+}

@@ -1,45 +1,31 @@
-/**
- * Copyright 2024 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 import { type FunctionDeclaration, SchemaType } from "@google/generative-ai";
-import { useEffect, useRef, useState, memo } from "react";
-import vegaEmbed from "vega-embed";
+import { useEffect, useState, memo } from "react";
 import { useLiveAPIContext } from "../../contexts/LiveAPIContext";
 import { ToolCall } from "../../multimodal-live-types";
+import { callMarketplace } from "../../api/marketplate-api";
+import GpuCard from '../GpuCard/GpuCard';
 
-const declaration: FunctionDeclaration = {
-  name: "render_altair",
-  description: "Displays an altair graph in json format.",
+const gpuPriceDeclaration: FunctionDeclaration = {
+  name: "list_gpu_prices",
+  description: "Lists current GPU price information.",
   parameters: {
     type: SchemaType.OBJECT,
     properties: {
-      json_graph: {
+      filter: {
         type: SchemaType.STRING,
-        description:
-          "JSON STRING representation of the graph to render. Must be a string, not a json object",
+        description: "Optional filter for GPU listing, e.g., model or brand",
       },
     },
-    required: ["json_graph"],
+    required: [],
   },
 };
 
-function AltairComponent() {
-  const [jsonString, setJSONString] = useState<string>("");
+function GpuPriceListingComponent() {
+  const [gpuData, setGpuData] = useState<any[]>([]);
   const { client, setConfig } = useLiveAPIContext();
 
   useEffect(() => {
+    // Set up configuration including tool declaration
     setConfig({
       model: "models/gemini-2.0-flash-exp",
       generationConfig: {
@@ -51,57 +37,71 @@ function AltairComponent() {
       systemInstruction: {
         parts: [
           {
-            text: 'You are my helpful assistant. Any time I ask you for a graph call the "render_altair" function I have provided you. Dont ask for additional information just make your best judgement.',
+            text: 'You are my helpful assistant. When I ask for GPU pricing, use the "list_gpu_prices" function. Just respond with the pricing details.',
           },
         ],
       },
       tools: [
-        // there is a free-tier quota for search
-        { googleSearch: {} },
-        { functionDeclarations: [declaration] },
+        // include GPU price listing function declaration
+        { functionDeclarations: [gpuPriceDeclaration] },
       ],
     });
   }, [setConfig]);
 
   useEffect(() => {
-    const onToolCall = (toolCall: ToolCall) => {
-      console.log(`got toolcall`, toolCall);
+    const onToolCall = async (toolCall: ToolCall) => {
+      console.log("Received gpu price tool call:", toolCall);
       const fc = toolCall.functionCalls.find(
-        (fc) => fc.name === declaration.name,
+        (fc) => fc.name === gpuPriceDeclaration.name,
       );
       if (fc) {
-        const str = (fc.args as any).json_graph;
-        setJSONString(str);
-      }
-      // send data for the response of your tool call
-      // in this case Im just saying it was successful
-      if (toolCall.functionCalls.length) {
-        setTimeout(
-          () =>
-            client.sendToolResponse({
-              functionResponses: toolCall.functionCalls.map((fc) => ({
-                response: { output: { success: true } },
-                id: fc.id,
-              })),
-            }),
-          200,
-        );
+        try {
+          const filter = (fc.args as any).filter || "";
+          const marketplaceData = await callMarketplace(filter);
+          setGpuData(marketplaceData.items || []);
+
+          // Send success response
+          client.sendToolResponse({
+            functionResponses: toolCall.functionCalls.map((fc) => ({
+              response: { output: { success: true, data: marketplaceData } },
+              id: fc.id,
+            })),
+          });
+        } catch (error) {
+          console.error("Error fetching GPU prices:", error);
+          setGpuData([]);
+
+          // Send error response
+          client.sendToolResponse({
+            functionResponses: toolCall.functionCalls.map((fc) => ({
+              response: { output: { success: false, error: "Failed to fetch GPU prices" } },
+              id: fc.id,
+            })),
+          });
+        }
       }
     };
+
     client.on("toolcall", onToolCall);
     return () => {
       client.off("toolcall", onToolCall);
     };
   }, [client]);
 
-  const embedRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (embedRef.current && jsonString) {
-      vegaEmbed(embedRef.current, JSON.parse(jsonString));
-    }
-  }, [embedRef, jsonString]);
-  return <div className="vega-embed" ref={embedRef} />;
+  return (
+    <div>
+      <h3>GPU Pricing</h3>
+      <div className="gpu-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px' }}>
+        {gpuData.length > 0 ? (
+          gpuData.map((gpu, index) => (
+            <GpuCard key={index} gpu={gpu} />
+          ))
+        ) : (
+          <p>No GPU pricing information received yet.</p>
+        )}
+      </div>
+    </div>
+  );
 }
 
-export const Altair = memo(AltairComponent);
+export const Altair = memo(GpuPriceListingComponent);
